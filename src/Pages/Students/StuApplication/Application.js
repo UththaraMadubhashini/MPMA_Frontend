@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Box,
   Typography,
@@ -7,68 +7,20 @@ import {
   Button,
   TextField,
   Grid,
-  InputAdornment, 
+  InputAdornment,
   FormControl,
   Select,
   MenuItem,
   InputLabel,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  dividerClasses,
 } from "@mui/material";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 function Application() {
-  const navigate = useNavigate();
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm({
-    defaultValues: {
-
-        fullName: "",
-        NICNumber: "",
-        nationality: "",
-        country: "",
-        dob: "",
-        cdcNumber: "",
-        address: "",
-        contactResidence: "",
-        contactMobile: "",
-        email: "",
-        emergencyName: "",
-        emergencyContact: "",
-        emergencyAddress: "",  
-
-        stream: "",
-        selectedCourses: "",
-        dlNo: "",
-        class: "",
-        department: "",
-        seaService: "",
-        company: "",
-        swimmingAbility: "",
-        isSLPAEmployee: "",
-        designation: "",
-        division: "",
-        serviceNo: "",
-        sectionUnit: "",
-
-        nic: "",
-        passport: "",
-        photo: "",
-    },
-  });
-
-  const [openSnackbar, setOpenSnackbar] = React.useState(false);
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
-  };
-
   const coursesByStream = {
     "Fire & Safety & Occupational Health": [
       "Fire Prevention and Fire Fighting",
@@ -189,16 +141,86 @@ function Application() {
     ],
   };
 
-  const onSubmit = async (data) => {
-    const formData = new FormData();
-    formData.append("nic", data.nic[0]);
-    if (data.passport?.length) {
-      formData.append("passport", data.passport[0]);
-    }
-    formData.append("photo", data.photo[0]);
+  const navigate = useNavigate();
 
+  const {
+    control,
+    watch,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+    reset,
+  } = useForm({
+    defaultValues: {
+      fullName: "",
+      NICNumber: "",
+      nationality: "",
+      country: "",
+      dob: "",
+      cdcNumber: "",
+      address: "",
+      contactResidence: "",
+      contactMobile: "",
+      email: "",
+      emergencyName: "",
+      emergencyContact: "",
+      emergencyAddress: "",
+      stream: "",
+      selectedCourses: "",
+      dlNo: "",
+      class: "",
+      department: "",
+      seaService: "",
+      company: "",
+      swimmingAbility: "",
+      isSLPAEmployee: "",
+      designation: "",
+      division: "",
+      serviceNo: "",
+      sectionUnit: "",
+      nic: "",
+      passport: "",
+      photo: "",
+    },
+  });
+
+  const { fields, replace } = useFieldArray({
+    control: control,
+    name: "courses",
+  });
+  const stream = watch("stream");
+
+  useEffect(() => {
+    const courses = coursesByStream[stream];
+    if (courses) {
+      replace(
+        courses.map((course) => {
+          return {
+            value: course,
+            checked: false,
+          };
+        })
+      );
+    }
+    console.log(courses);
+  }, [stream]);
+
+  const [openSnackbar, setOpenSnackbar] = React.useState(false);
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
+  };
+
+  const onSubmit = async (data) => {
     try {
-      const response = await axios.post("http://localhost:3000/application", formData);
+      // console.log(data);
+      data.courses = data.courses
+        .filter((course) => {
+          return course.checked;
+        })
+        .map((course) => course.value);
+      console.log(data);
+      const response = await axios.post("http://localhost:4000/api/registration", data);
       if (response.status === 201) {
         setOpenSnackbar(true);
         reset();
@@ -213,35 +235,33 @@ function Application() {
 
   const handleFileUpload = async (file) => {
     const formData = new FormData();
-    formData.append('file', file);
-
+    formData.append("file", file);
     try {
-        const response = await axios.post('http://localhost:5000/api/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        console.log(response.data.message);
+      const response = await axios.post("http://localhost:5000/api/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      console.log(response.data.message);
     } catch (error) {
-        console.error('Error uploading file:', error);
+      console.error("Error uploading file:", error);
     }
-};
+  };
 
   return (
-<>
-    <Box
-      sx={{
-        padding: 3,
-        border: "1px solid #e0e0e0",
-        borderRadius: "8px",
-        maxWidth: "600px",
-        margin: "auto",
-        marginTop: "-20px",
-      }}
-    >
-      <Typography variant="h5" sx={{ fontWeight: "bold", marginBottom: 2 }}>
-        Biographical Details
-      </Typography>
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <Box
+        sx={{
+          padding: 3,
+          border: "1px solid #e0e0e0",
+          borderRadius: "8px",
+          maxWidth: "600px",
+          margin: "auto",
+          marginTop: "-20px",
+        }}
+      >
+        <Typography variant="h5" sx={{ fontWeight: "bold", marginBottom: 2 }}>
+          Biographical Details
+        </Typography>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
         <Grid container spacing={2}>
           {/* Full Name */}
           <Grid item xs={12}>
@@ -417,11 +437,7 @@ function Application() {
                     startAdornment: (
                       <InputAdornment position="start">
                         <FormControl variant="standard">
-                          <Select
-                            value="+94"
-                            disabled
-                            sx={{ minWidth: 60 }}
-                          >
+                          <Select value="+94" disabled sx={{ minWidth: 60 }}>
                             <MenuItem value="+94">+94</MenuItem>
                           </Select>
                         </FormControl>
@@ -518,32 +534,29 @@ function Application() {
           </Grid>
         </Grid>
 
-        {/* Submit and Back Buttons */}
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-between",
             marginTop: 3,
           }}
-        >
-        </Box>
-      </form>
-    </Box>
+        ></Box>
+      </Box>
 
-    <Box
-      sx={{
-        padding: 3,
-        border: "1px solid #e0e0e0",
-        borderRadius: "8px",
-        maxWidth: "600px",
-        margin: "auto",
-        marginTop: "40px",
-      }}
-    >
-      <Typography variant="h5" sx={{ fontWeight: "bold", marginBottom: 2 }}>
-        Academic Details
-      </Typography>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <Box
+        sx={{
+          padding: 3,
+          border: "1px solid #e0e0e0",
+          borderRadius: "8px",
+          maxWidth: "600px",
+          margin: "auto",
+          marginTop: "40px",
+        }}
+      >
+        <Typography variant="h5" sx={{ fontWeight: "bold", marginBottom: 2 }}>
+          Academic Details
+        </Typography>
+
         <Typography variant="subtitle1" sx={{ fontWeight: "bold", marginBottom: 2 }}>
           Select Stream
         </Typography>
@@ -567,49 +580,28 @@ function Application() {
                 </FormControl>
               )}
             />
-            {errors.stream && (
-              <Typography color="error">{errors.stream.message}</Typography>
-            )}
+            {errors.stream && <Typography color="error">{errors.stream.message}</Typography>}
           </Grid>
         </Grid>
 
-        <Typography
-          variant="subtitle1"
-          sx={{ fontWeight: "bold", marginBottom: 2 }}
-        >
+        <Typography variant="subtitle1" sx={{ fontWeight: "bold", marginBottom: 2 }}>
           Select Courses
         </Typography>
         <Grid container spacing={2} sx={{ marginBottom: 3 }}>
-          <Controller
-            name="selectedCourses"
-            control={control}
-            render={({ field: { value, onChange } }) => (
-              Object.keys(coursesByStream).map(
-                (stream) =>
-                  value.stream === stream && (
-                    coursesByStream[stream].map((course) => (
-                      <Grid item xs={6} key={course}>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={value.includes(course)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  onChange([...value, course]);
-                                } else {
-                                  onChange(value.filter((c) => c !== course));
-                                }
-                              }}
-                            />
-                          }
-                          label={course}
-                        />
-                      </Grid>
-                    ))
-                  )
-              )
-            )}
-          />
+          {fields.map((field, index) => (
+            <Grid item xs={12} key={field.id}>
+              <Controller
+                name={`courses.${index}.checked`}
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={<Checkbox {...field} checked={field.value} />}
+                    label={fields[index].value}
+                  />
+                )}
+              />
+            </Grid>
+          ))}
         </Grid>
 
         <Typography variant="subtitle1" sx={{ fontWeight: "bold", marginBottom: 2 }}>
@@ -649,9 +641,7 @@ function Application() {
             <Controller
               name="department"
               control={control}
-              render={({ field }) => (
-                <TextField {...field} fullWidth label="Department/Rank" />
-              )}
+              render={({ field }) => <TextField {...field} fullWidth label="Department/Rank" />}
             />
           </Grid>
           <Grid item xs={12}>
@@ -682,24 +672,22 @@ function Application() {
           }
           label="Swimming Ability"
         />
-      </form>
-    </Box>
+      </Box>
 
-    <Box
-      sx={{
-        padding: 3,
-        border: "1px solid #e0e0e0",
-        borderRadius: "8px",
-        maxWidth: 600,
-        margin: "auto",
-        marginTop: "40px",
-      }}
-    >
-      <Typography variant="h5" sx={{ fontWeight: "bold", marginBottom: 2 }}>
-        Upload Documents
-      </Typography>
+      <Box
+        sx={{
+          padding: 3,
+          border: "1px solid #e0e0e0",
+          borderRadius: "8px",
+          maxWidth: 600,
+          margin: "auto",
+          marginTop: "40px",
+        }}
+      >
+        <Typography variant="h5" sx={{ fontWeight: "bold", marginBottom: 2 }}>
+          Upload Documents
+        </Typography>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
         {/* NIC File Upload */}
         <Typography variant="subtitle1" sx={{ fontWeight: "bold", marginBottom: 1 }}>
           NIC *
@@ -774,11 +762,7 @@ function Application() {
             marginTop: 3,
           }}
         >
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={() => navigate("/Application2")}
-          >
+          <Button variant="outlined" color="primary" onClick={() => navigate("/Application2")}>
             Back
           </Button>
 
@@ -786,31 +770,24 @@ function Application() {
             Submit
           </Button>
         </Box>
-      </form>
-
-      {/* Success Snackbar */}
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={3000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
-      >
-        <Alert
+        {/* Success Snackbar */}
+        <Snackbar
+          open={openSnackbar}
+          autoHideDuration={3000}
           onClose={handleCloseSnackbar}
-          severity="success"
-          sx={{ width: "100%" }}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "center",
+          }}
         >
-          Successfully registered!
-        </Alert>
-      </Snackbar>
-    </Box>
-    </>
+          <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: "100%" }}>
+            Successfully registered!
+          </Alert>
+        </Snackbar>
+      </Box>
+      <button>click</button>
+    </form>
   );
-
-  
 }
 
 export default Application;
