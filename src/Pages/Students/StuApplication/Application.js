@@ -146,43 +146,12 @@ function Application() {
   const {
     control,
     watch,
+    register,
     handleSubmit,
     setValue,
     formState: { errors },
     reset,
-  } = useForm({
-    defaultValues: {
-      fullName: "",
-      NICNumber: "",
-      nationality: "",
-      country: "",
-      dob: "",
-      cdcNumber: "",
-      address: "",
-      contactResidence: "",
-      contactMobile: "",
-      email: "",
-      emergencyName: "",
-      emergencyContact: "",
-      emergencyAddress: "",
-      stream: "",
-      selectedCourses: "",
-      dlNo: "",
-      class: "",
-      department: "",
-      seaService: "",
-      company: "",
-      swimmingAbility: "",
-      isSLPAEmployee: "",
-      designation: "",
-      division: "",
-      serviceNo: "",
-      sectionUnit: "",
-      nic: "",
-      passport: "",
-      photo: "",
-    },
-  });
+  } = useForm();
 
   const { fields, replace } = useFieldArray({
     control: control,
@@ -213,14 +182,39 @@ function Application() {
 
   const onSubmit = async (data) => {
     try {
-      // console.log(data);
-      data.courses = data.courses
-        .filter((course) => {
-          return course.checked;
-        })
-        .map((course) => course.value);
-      console.log(data);
-      const response = await axios.post("http://localhost:4000/api/registration", data);
+      //console.log(data);
+      const formData = new FormData();
+      data.courses.forEach((course) => {
+        if (course.checked) {
+          formData.append("courses[]", course.value);
+        }
+      });
+      formData.append("NICNumber", data.NICNumber);
+      formData.append("address", data.address);
+      formData.append("cdcNumber", data.cdcNumber || "");
+      formData.append("class", data.class || "");
+      formData.append("company", data.company);
+      formData.append("contactMobile", data.contactMobile);
+      formData.append("contactResidence", data.contactResidence || "");
+      formData.append("country", data.country);
+      formData.append("department", data.department || "");
+      formData.append("dlNo", data.dlNo || "");
+      formData.append("dob", data.dob);
+      formData.append("email", data.email);
+      formData.append("emergencyAddress", data.emergencyAddress || "");
+      formData.append("emergencyContact", data.emergencyContact || "");
+      formData.append("emergencyName", data.emergencyName || "");
+      formData.append("fullName", data.fullName);
+      formData.append("nationality", data.nationality || "");
+      formData.append("seaService", data.seaService || "");
+      formData.append("stream", data.stream);
+      formData.append("swimmingAbility", data.swimmingAbility ? true : false); // Convert boolean to string
+      formData.append("nic", data.nic[0]);
+      formData.append("photo", data.photo[0]);
+      formData.append("passport", data.passport[0]);
+      const response = await axios.post("http://localhost:4000/api/students", formData);
+      //console.log(formData.values);
+      console.log(response);
       if (response.status === 201) {
         setOpenSnackbar(true);
         reset();
@@ -230,19 +224,6 @@ function Application() {
     } catch (error) {
       console.error("Error submitting form:", error);
       alert("An error occurred while submitting. Please try again.");
-    }
-  };
-
-  const handleFileUpload = async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const response = await axios.post("http://localhost:5000/api/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      console.log(response.data.message);
-    } catch (error) {
-      console.error("Error uploading file:", error);
     }
   };
 
@@ -692,67 +673,19 @@ function Application() {
         <Typography variant="subtitle1" sx={{ fontWeight: "bold", marginBottom: 1 }}>
           NIC *
         </Typography>
-        <Controller
-          name="nic"
-          control={control}
-          rules={{ required: "NIC is required." }}
-          render={({ field }) => (
-            <TextField
-              fullWidth
-              type="file"
-              inputProps={{
-                accept: "image/*,application/pdf",
-              }}
-              error={!!errors.nic}
-              helperText={errors.nic?.message}
-              onChange={(e) => field.onChange(e.target.files)}
-              sx={{ marginBottom: 2 }}
-            />
-          )}
-        />
+        <input type="file" {...register("nic")} />
 
         {/* Passport File Upload */}
         <Typography variant="subtitle1" sx={{ fontWeight: "bold", marginBottom: 1 }}>
           Passport
         </Typography>
-        <Controller
-          name="passport"
-          control={control}
-          render={({ field }) => (
-            <TextField
-              fullWidth
-              type="file"
-              inputProps={{
-                accept: "image/*,application/pdf",
-              }}
-              onChange={(e) => field.onChange(e.target.files)}
-              sx={{ marginBottom: 2 }}
-            />
-          )}
-        />
+        <input type="file" {...register("passport")} />
 
         {/* Photo File Upload */}
         <Typography variant="subtitle1" sx={{ fontWeight: "bold", marginBottom: 1 }}>
           Photo (Passport size) *
         </Typography>
-        <Controller
-          name="photo"
-          control={control}
-          rules={{ required: "Photo is required." }}
-          render={({ field }) => (
-            <TextField
-              fullWidth
-              type="file"
-              inputProps={{
-                accept: "image/*",
-              }}
-              error={!!errors.photo}
-              helperText={errors.photo?.message}
-              onChange={(e) => field.onChange(e.target.files)}
-              sx={{ marginBottom: 2 }}
-            />
-          )}
-        />
+        <input type="file" {...register("photo")} />
 
         {/* Navigation Buttons */}
         <Box
@@ -766,7 +699,7 @@ function Application() {
             Back
           </Button>
 
-          <Button type="submit" onClick={handleFileUpload} variant="contained" color="primary">
+          <Button type="submit" variant="contained" color="primary">
             Submit
           </Button>
         </Box>
